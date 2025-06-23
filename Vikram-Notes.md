@@ -1,8 +1,70 @@
 >.\terraform destroy -target="aws_instance.my-ec2-instance"
 >for list variable use variable "aws_instance_type_list" and same for map with string
->if used count the update output to list output for each instance like value = [for instance in aws_instance.my-ec2-instance : instance.public_ip]
+>if used <count> the update output to list output for each instance like value = [for instance in aws_instance.my-ec2-instance : instance.public_ip]
+>for_each, can be used in resouce block, module and output
+>for_each, can be used with map, and toset()
+>tomap(), only used in output
+>remeber each.key and each.value
 
+resource "aws_instance" "example" {
+  for_each = <map or toset(list)>
+  ...
+}
 
+>for_each with a Map
+resource "aws_instance" "env_ec2" {
+  for_each = {
+    dev  = "t2.micro"
+    prod = "t3.large"
+  }
+
+  instance_type = each.value
+  tags = {
+    Name = each.key
+  }
+}
+
+>for_each with a Set (use toset())
+
+variable "az_list" {
+  default = ["us-east-1a", "us-east-1b"]
+}
+
+resource "aws_instance" "az_vm" {
+  for_each = toset(var.az_list)
+
+  availability_zone = each.key
+  instance_type     = "t2.micro"
+  tags = {
+    Name = "vm-${each.key}"
+  }
+}
+
+>for — Loop to extract values
+
+output "instance_dns_list" {
+  value = [
+    for inst in aws_instance.env_ec2 : inst.public_dns
+  ]
+}
+
+>toset() — Convert list ➜ set (no duplicates)
+
+output "instance_types_set" {
+  value = toset([
+    for inst in aws_instance.env_ec2 : inst.instance_type
+  ])
+}
+
+>tomap() — Convert loop ➜ map (key ➜ value)
+
+output "env_to_dns_map" {
+  value = tomap({
+    for env, inst in aws_instance.env_ec2 : env => inst.public_dns
+  })
+}
+
+===============================================
 
 
 
